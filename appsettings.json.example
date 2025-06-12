@@ -1,0 +1,19 @@
+{
+    "BlockerService": {
+        "HostsFilePath": "/etc/hosts",
+        "UrisToBlock": [
+            {
+                "UriToBlock": "www.youtube.com",
+                "BlockFrom": "09:00",
+                "BlockTo": "17:00",
+                "ActiveDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            },
+            {
+                "UriToBlock": "www.facebook.com",
+                "BlockFrom": "09:00",
+                "BlockTo": "17:00",
+                "ActiveDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+            }
+        ]
+    }
+}
