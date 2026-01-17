@@ -1,6 +1,4 @@
 using Blocker.Jobs;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Impl.Calendar;
 using Blocker.Settings;
@@ -10,15 +8,11 @@ namespace Blocker.DependencyInjection;
 
 public static class QuartzExtensions
 {
-    public static IServiceCollectionQuartzConfigurator AddJobs(this IServiceCollectionQuartzConfigurator config, IServiceCollection services)
+    public static IServiceCollectionQuartzConfigurator AddJobs(this IServiceCollectionQuartzConfigurator config, BlockerServiceSettings settings)
     {
-        var sp = services.BuildServiceProvider();
-
-        var options = sp.GetRequiredService<IOptions<BlockerServiceSettings>>();
-        var settings = options.Value;
-
         var uris = settings.UrisToBlock.Select(u => u);
-        var distincted = uris.Distinct();
+        var blockUriSettingsEqualityComparer = new BlockUriSettingsUriComparer();
+        var distincted = uris.Distinct(blockUriSettingsEqualityComparer);
 
         if (distincted.Count() < uris.Count())
             throw new InvalidConfigurationException("Duplicate configurations exist for the same Uri");

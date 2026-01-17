@@ -56,13 +56,20 @@ cp appsettings.json.example appsettings.json
 ```json
 {
   "HostsFilePath": "/etc/hosts",
-  "BlockedSites": [
+  "UrisToBlock": [
     {
       "UriToBlock": "example.com",
       "ActiveDays": [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ],
       "BlockFrom": "09:00",
       "BlockTo": "17:00"
-    }
+    },
+    {
+      "UriToBlock": "example-2.com",
+      "ActiveDays": [ "Saturday", "Sunday" ],
+      "BlockFrom": "06:00",
+      "BlockTo": "12:00"
+    },
+    [...]
   ]
 }
 ```
@@ -131,7 +138,7 @@ Blocker can be run:
 ## Safety notes
 
 - Blocker modifies the system `hosts` file  
-- Always ensure you have a backup before first use
+- Always ensure you have a backup `hosts` file before first use
 - Misconfiguration may temporarily affect networking until corrected
 
 ---

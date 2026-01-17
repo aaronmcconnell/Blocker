@@ -35,19 +35,24 @@ builder.ConfigureHostConfiguration((config) =>
     config.AddJsonFile("appsettings.json", false);
 });
 
-builder.ConfigureServices((services) =>
+builder.ConfigureServices((context, services) =>
 {
     services.AddLogging(lb =>
     {
         lb.AddSerilog();
     });
 
+    var settings = new BlockerServiceSettings();
+    context.Configuration.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
     services.AddOptions<BlockerServiceSettings>()
-        .BindConfiguration(BlockerServiceSettings.SectionName)
+        .Configure(options =>
+        {
+            options.HostsFilePath = settings.HostsFilePath;
+            options.UrisToBlock = settings.UrisToBlock;
+        })
         .ValidateDataAnnotations()
         .ValidateOnStart();
-
-    services.AddQuartz(q => q.AddJobs(services));
+    services.AddQuartz(q => q.AddJobs(settings));
 
     services.AddSingleton<IHostsFileService, HostsFileService>();
     services.AddSingleton<ICacheFlushService, CacheFlushService>();
