@@ -42,10 +42,10 @@ builder.ConfigureServices((services) =>
         lb.AddSerilog();
     });
 
-    services.AddOptions<BlockerServiceSettings>().Configure<IConfiguration>((settings, config) =>
-    {
-        config.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
-    });
+    services.AddOptions<BlockerServiceSettings>()
+        .BindConfiguration(BlockerServiceSettings.SectionName)
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
 
     services.AddQuartz(q => q.AddJobs(services));
 
