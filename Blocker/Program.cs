@@ -45,6 +45,8 @@ builder.ConfigureServices((context, services) =>
 
     var settings = new BlockerServiceSettings();
     context.Configuration.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
+    services.ValidateBlockerServiceSettings(settings);
+
     var clock = SystemClock.Instance;
     services.AddOptions<BlockerServiceSettings>()
         .Configure(options =>
