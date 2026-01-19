@@ -8,6 +8,7 @@ using Blocker.Extensions;
 using Blocker.Services;
 using Blocker.Settings;
 using Serilog;
+using NodaTime;
 
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 {
@@ -44,6 +45,7 @@ builder.ConfigureServices((context, services) =>
 
     var settings = new BlockerServiceSettings();
     context.Configuration.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
+    var clock = SystemClock.Instance;
     services.AddOptions<BlockerServiceSettings>()
         .Configure(options =>
         {
@@ -52,7 +54,8 @@ builder.ConfigureServices((context, services) =>
         })
         .ValidateDataAnnotations()
         .ValidateOnStart();
-    services.AddQuartz(q => q.AddJobs(settings));
+    services.AddSingleton<IClock>(clock);
+    services.AddQuartz(q => q.AddJobs(settings, clock));
 
     services.AddSingleton<IHostsFileService, HostsFileService>();
     services.AddSingleton<ICacheFlushService, CacheFlushService>();

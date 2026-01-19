@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Blocker.Settings;
+using NodaTime;
 
 namespace Blocker.Services;
 
@@ -10,14 +11,16 @@ public class StatusCheckService : IStatusCheckService
     private readonly ICacheFlushService _cacheFlushService;
     private readonly BlockerServiceSettings _settings;
     private readonly ILogger<StatusCheckService> _logger;
+    private readonly IClock _clock;
 
     public StatusCheckService(IHostsFileService hostsFileService, ICacheFlushService cacheFlushService, IOptions<BlockerServiceSettings> settings,
-        ILogger<StatusCheckService> logger)
+        ILogger<StatusCheckService> logger, IClock clock)
     {
         _hostsFileService = hostsFileService;
         _cacheFlushService = cacheFlushService;
         _settings = settings.Value;
         _logger = logger;
+        _clock = clock;
     }
 
     public Task EnsureCorrectStatus(BlockUriSettings blockSettings)
@@ -41,7 +44,7 @@ public class StatusCheckService : IStatusCheckService
 
     private bool ShouldBeRevoked(BlockUriSettings blockSettings)
     {
-        var ts = DateTimeOffset.Now;
+        var ts = GetCurrentLocalTime();
         var activeDays = blockSettings.ActiveDays.Select(Enum.Parse<DayOfWeek>);
 
         if (!activeDays.Contains(ts.DayOfWeek))
@@ -54,5 +57,10 @@ public class StatusCheckService : IStatusCheckService
         return blockFrom < currentTime && blockTo > currentTime;
     }
 
-
+    private DateTimeOffset GetCurrentLocalTime()
+    {
+        var utc = _clock.GetCurrentInstant().ToDateTimeUtc();
+        var offset = TimeZoneInfo.Local.GetUtcOffset(utc);
+        return new DateTimeOffset(utc).ToOffset(offset);
+    }
 }
