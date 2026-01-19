@@ -55,22 +55,24 @@ cp appsettings.json.example appsettings.json
 
 ```json
 {
-  "HostsFilePath": "/etc/hosts",
-  "UrisToBlock": [
-    {
-      "UriToBlock": "example.com",
-      "ActiveDays": [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ],
-      "BlockFrom": "09:00",
-      "BlockTo": "17:00"
-    },
-    {
-      "UriToBlock": "example-2.com",
-      "ActiveDays": [ "Saturday", "Sunday" ],
-      "BlockFrom": "06:00",
-      "BlockTo": "12:00"
-    },
-    [...]
-  ]
+  "BlockerService": {
+    "HostsFilePath": "/etc/hosts",
+    "UrisToBlock": [
+      {
+        "UriToBlock": "example.com",
+        "ActiveDays": [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ],
+        "BlockFrom": "09:00",
+        "BlockTo": "17:00"
+      },
+      {
+        "UriToBlock": "example-2.com",
+        "ActiveDays": [ "Saturday", "Sunday" ],
+        "BlockFrom": "06:00",
+        "BlockTo": "12:00"
+      },
+      [...]
+    ]
+  }
 }
 ```
 
