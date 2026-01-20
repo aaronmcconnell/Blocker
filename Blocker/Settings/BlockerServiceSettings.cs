@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
 namespace Blocker.Settings;
 
@@ -10,6 +11,7 @@ public class BlockerServiceSettings
     public string HostsFilePath { get; set; } = null!;
 
     [Required]
+    [ValidateEnumeratedItems]
     public IEnumerable<BlockUriSettings> UrisToBlock { get; set; } = null!;
     
     public TimeOnly ReadTimeFromSetting(string timeSetting)

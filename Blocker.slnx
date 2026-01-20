@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Blocker/Blocker.csproj" />
+  <Project Path="Blocker.Tests/Blocker.Tests.csproj" />
+</Solution>

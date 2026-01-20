@@ -1,24 +1,19 @@
 using Blocker.Jobs;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Impl.Calendar;
 using Blocker.Settings;
 using Quartz.Impl.AdoJobStore;
+using NodaTime;
 
 namespace Blocker.DependencyInjection;
 
 public static class QuartzExtensions
 {
-    public static IServiceCollectionQuartzConfigurator AddJobs(this IServiceCollectionQuartzConfigurator config, IServiceCollection services)
+    public static IServiceCollectionQuartzConfigurator AddJobs(this IServiceCollectionQuartzConfigurator config, BlockerServiceSettings settings, IClock clock)
     {
-        var sp = services.BuildServiceProvider();
-
-        var options = sp.GetRequiredService<IOptions<BlockerServiceSettings>>();
-        var settings = options.Value;
-
         var uris = settings.UrisToBlock.Select(u => u);
-        var distincted = uris.Distinct();
+        var blockUriSettingsEqualityComparer = new BlockUriSettingsUriComparer();
+        var distincted = uris.Distinct(blockUriSettingsEqualityComparer);
 
         if (distincted.Count() < uris.Count())
             throw new InvalidConfigurationException("Duplicate configurations exist for the same Uri");
@@ -27,7 +22,8 @@ public static class QuartzExtensions
         {
             var data = new JobDataMap() { { "uri", uriToBlock.UriToBlock } };
 
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var now = GetCurrentLocalTime(clock);
+            var today = DateOnly.FromDateTime(now.DateTime);
 
             var activeDays = uriToBlock.ActiveDays.Select(Enum.Parse<DayOfWeek>);
             var inactiveDays = Enum.GetValues<DayOfWeek>().Except(activeDays);
@@ -42,7 +38,7 @@ public static class QuartzExtensions
             config.ScheduleJob<RevokeJob>(trigger =>
             {
                 var time = settings.ReadTimeFromSetting(uriToBlock.BlockFrom);
-                var startTime = new DateTimeOffset(today, time, DateTimeOffset.Now.Offset);
+                var startTime = new DateTimeOffset(today, time, now.Offset);
                 trigger.StartAt(startTime);
                 trigger.ModifiedByCalendar(calendarName);
                 trigger.WithSimpleSchedule(x => x
@@ -55,7 +51,7 @@ public static class QuartzExtensions
             config.ScheduleJob<GrantJob>(trigger =>
             {
                 var time = settings.ReadTimeFromSetting(uriToBlock.BlockTo);
-                var startTime = new DateTimeOffset(today, time, DateTimeOffset.Now.Offset);
+                var startTime = new DateTimeOffset(today, time, now.Offset);
                 trigger.StartAt(startTime);
                 trigger.ModifiedByCalendar(calendarName);
                 trigger.WithSimpleSchedule(x => x
@@ -67,7 +63,7 @@ public static class QuartzExtensions
 
             config.ScheduleJob<CheckJob>(trigger =>
             {
-                trigger.StartAt(DateTimeOffset.Now.AddMinutes(5));
+                trigger.StartAt(now.AddMinutes(5));
                 trigger.ModifiedByCalendar(calendarName);
                 trigger.WithSimpleSchedule(s => s.WithIntervalInMinutes(5).RepeatForever());
                 trigger.WithIdentity($"check-{uriToBlock.UriToBlock}");
@@ -76,6 +72,13 @@ public static class QuartzExtensions
         }
 
         return config;
+    }
+
+    private static DateTimeOffset GetCurrentLocalTime(IClock clock)
+    {
+        var utc = clock.GetCurrentInstant().ToDateTimeUtc();
+        var offset = TimeZoneInfo.Local.GetUtcOffset(utc);
+        return new DateTimeOffset(utc).ToOffset(offset);
     }
 
     private static bool[] GetInactiveDaysArray(IEnumerable<DayOfWeek> inactiveDays)

@@ -8,6 +8,7 @@ using Blocker.Extensions;
 using Blocker.Services;
 using Blocker.Settings;
 using Serilog;
+using NodaTime;
 
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 {
@@ -35,19 +36,28 @@ builder.ConfigureHostConfiguration((config) =>
     config.AddJsonFile("appsettings.json", false);
 });
 
-builder.ConfigureServices((services) =>
+builder.ConfigureServices((context, services) =>
 {
     services.AddLogging(lb =>
     {
         lb.AddSerilog();
     });
 
-    services.AddOptions<BlockerServiceSettings>().Configure<IConfiguration>((settings, config) =>
-    {
-        config.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
-    });
+    var settings = new BlockerServiceSettings();
+    context.Configuration.GetRequiredSection(BlockerServiceSettings.SectionName).Bind(settings);
+    services.ValidateBlockerServiceSettings(settings);
 
-    services.AddQuartz(q => q.AddJobs(services));
+    var clock = SystemClock.Instance;
+    services.AddOptions<BlockerServiceSettings>()
+        .Configure(options =>
+        {
+            options.HostsFilePath = settings.HostsFilePath;
+            options.UrisToBlock = settings.UrisToBlock;
+        })
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+    services.AddSingleton<IClock>(clock);
+    services.AddQuartz(q => q.AddJobs(settings, clock));
 
     services.AddSingleton<IHostsFileService, HostsFileService>();
     services.AddSingleton<ICacheFlushService, CacheFlushService>();

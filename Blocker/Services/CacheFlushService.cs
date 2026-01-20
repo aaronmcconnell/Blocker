@@ -27,7 +27,6 @@ public class CacheFlushService : ICacheFlushService
         var proc = Process.Start(procStart);
         if (proc is null)
             throw new Exception("proc is null");
-        proc.Start();
         proc.WaitForExit();
     }
 }
