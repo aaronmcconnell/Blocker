@@ -11,15 +11,15 @@ public static class IServiceCollectionExtensions
         var exceptions = new List<Exception>();
 
         if (!File.Exists(settings.HostsFilePath))
-            exceptions.Add(new FileNotFoundException("Host file not found"));
+            exceptions.Add(new FileNotFoundException($"Host file not found at path: '{settings.HostsFilePath}'"));
 
         if (settings.UrisToBlock == null)
             exceptions.Add(new ArgumentNullException(nameof(settings.UrisToBlock)));
 
         foreach (var blockSetting in settings.UrisToBlock ?? Array.Empty<BlockUriSettings>())
         {
-            if (!IsValidHostOrUri(blockSetting.UriToBlock))
-                exceptions.Add(new UriFormatException($"Not a valid host or Uri: {blockSetting.UriToBlock}"));
+            if (!IsValidHostOrIp(blockSetting.UriToBlock))
+                exceptions.Add(new UriFormatException($"Invalid UriToBlock setting: '{blockSetting.UriToBlock}'"));
 
             if (blockSetting.ActiveDays == null || !blockSetting.ActiveDays.Any())
                 exceptions.Add(new ArgumentException("ActiveDays is an empty array", nameof(blockSetting.ActiveDays)));
@@ -32,13 +32,13 @@ public static class IServiceCollectionExtensions
 
             var blockFromIsValid = TryParseTime(blockSetting.BlockFrom, out var tBlockFrom);
             if (!blockFromIsValid)
-                exceptions.Add(new ArgumentException("Not a valid time", nameof(blockSetting.BlockFrom)));
+                exceptions.Add(new ArgumentException($"Invalid time '{blockSetting.BlockFrom}'", nameof(blockSetting.BlockFrom)));
 
             var blockToIsValid = TryParseTime(blockSetting.BlockTo, out var tBlockTo);
             if (!blockToIsValid)
-                exceptions.Add(new ArgumentException("Not a valid time", nameof(blockSetting.BlockTo)));
+                exceptions.Add(new ArgumentException($"Invalid time '{blockSetting.BlockTo}'", nameof(blockSetting.BlockTo)));
 
-            if (blockFromIsValid && blockToIsValid && tBlockFrom > tBlockTo)
+            if (blockFromIsValid && blockToIsValid && tBlockFrom >= tBlockTo)
                 exceptions.Add(new ArgumentException("BlockTo must be after BlockFrom", nameof(blockSetting.BlockTo)));
         }
 
@@ -46,15 +46,16 @@ public static class IServiceCollectionExtensions
         if (exceptions.Count > 1) throw new AggregateException(exceptions);
     }
 
-    private static bool IsValidHostOrUri(string value)
+    private static bool IsValidHostOrIp(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        if (Uri.CheckHostName(value) != UriHostNameType.Unknown)
-            return true;
+        var type = Uri.CheckHostName(value.Trim());
 
-        return Uri.TryCreate(value, UriKind.Absolute, out _);
+        return type is UriHostNameType.Dns
+            or UriHostNameType.IPv4
+            or UriHostNameType.IPv6;
     }
 
     private static bool TryParseTime(string value, out TimeOnly time)
