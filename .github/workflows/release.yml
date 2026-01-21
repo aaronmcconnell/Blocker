@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # required to create a release and upload assets :contentReference[oaicite:2]{index=2}
+
+jobs:
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            ext: ".zip"
+          - os: ubuntu-latest
+            rid: linux-x64
+            ext: ".tar.gz"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish
+        run: dotnet publish -c Release -r ${{ matrix.rid }} --self-contained false -o publish/${{ matrix.rid }}
+
+      # Package the output so the release has a single downloadable file per OS
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath Blocker-${{ matrix.rid }}${{ matrix.ext }}
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          tar -czf Blocker-${{ matrix.rid }}${{ matrix.ext }} -C publish/${{ matrix.rid }} .
+
+      - name: Create release and upload asset(s)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Blocker-${{ matrix.rid }}${{ matrix.ext }}
