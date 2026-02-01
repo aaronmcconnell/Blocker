@@ -15,6 +15,16 @@ Blocker operates by:
 
 The service runs continuously in the background and evaluates whether blocking should be active based on the current time and day.
 
+> #### ℹ️ Subdomains  
+> Hosts-file entries apply to **exact hostnames only** and do not support wildcards. Blocking a root domain such as: 
+> - `site-to-block.com` 
+>
+> will **not** automatically block subdomains such as:
+> - `www.site-to-block.com`
+> - `m.site-to-block.com`
+> 
+> To fully block access to a site, you may need to explicitly include common subdomains (for example, both `site-to-block.com` and `www.site-to-block.com`).
+
 ## Features
 
 - Time-of-day based website blocking
